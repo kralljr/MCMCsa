@@ -4,7 +4,7 @@
 \title{MCMC for source apportionment}
 \usage{
 mcmcsa(dat, L, lamcon, mdls = NULL, guessvec = NULL, burnin = 10000,
-  N = 50000)
+  N = 1e+05)
 }
 \arguments{
 \item{data}{data frame of daily constituent concentrations with date as first column}
