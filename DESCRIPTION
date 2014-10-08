@@ -1,0 +1,16 @@
+Package: MCMCsa
+Title: Performs Bayesian source apportionment for PM data
+Version: 0.1
+Author: Jenna Krall <jenna.krall@gmail.com>
+Maintainer: Jenna Krall <jenna.krall@gmail.com>
+Description: Uses source apportionment model (e.g. see Nikolov et al. 2008
+    or Hackstadt and Peng 2014) to estimate sources of PM using
+    PM chemical constituent concentrations.  Details about the model
+    can be found in Krall_mfa_mdl_proposal.pdf.
+Depends:
+    R (>= 3.1.1)
+Imports:
+    truncnorm (>= 1.0),
+    MCMCpack (>= 1.3),
+    mvtnorm (>= 1.0)
+License: What license is it under?
