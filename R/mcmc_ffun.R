@@ -57,34 +57,58 @@ lhoodf <- function(fmat, dat, guessvec, t) {
 
 
 
-
+# function to get likelihood of y
+# dat is data
+# guessvec is guesses
+# t is which day
+# p is which constituent
 ly <- function(dat, guessvec, t = NULL, p = NULL) {
+	
+	#first log data
 	ldat <- log(dat)
 	
+	#get guesses
 	fmat <- guessvec[["fmat"]]
 	lamstar <- guessvec[["lamstar"]]
 	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
 	sigma2 <- guessvec[["sigma2"]]
 	
-	
+	#if want all
 	if(is.null(t) & is.null(p)) {
+		
+		#get mean
 		mn <- log(fmat %*% lambda)
 	
+		#get in exp
 		diffsq <- (ldat - mn)
 		sweeps <- sweep(diffsq, 2, diag(sigma2) * 2, "/")
 		rs <- -rowSums(sweeps)
+		
+		#exp
 		first <- exp(rs)
+		
+	# if want one day
 	}else if(is.null(p)){
+		
+		#get data
 		ldat <- ldat[t, ]
+		#get mean
 		mn <- log(t(fmat[t, ]) %*% lambda)
 		first <- -sum((ldat - mn)^2 / (2 * diag(sigma2)))
 		first <- exp(first)
+		
+	# if want one constituent
 	}else if(is.null(t)) {
 		
+		#get data
 		ldat <- ldat[, p]
+		
+		#get mean
 		mn <- log(fmat %*% lambda[, p])
 		eachday <- (ldat - mn)^2 / (2 * sigma2[p, p])
 		first <- exp(-sum(eachday))
+		
+	#one constituent, one day	
 	} else{
 		
 		ldat <- ldat[t, p]
