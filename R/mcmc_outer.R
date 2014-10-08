@@ -26,7 +26,7 @@
 #' nycmdl <- nycmdl[, -whPM]
 #' mcmcsa(nycdat, nycmdl)
 mcmcsa <- function(dat, L, lamcon, mdls = NULL, 
-	guessvec = NULL, burnin = 10000, N = 50000){
+	guessvec = NULL, burnin = 10000, N = 100000){
 
 	if(class(dat[, 1] != "Date")) {
 		stop("First column is not a date")
