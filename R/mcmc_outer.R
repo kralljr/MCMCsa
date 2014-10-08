@@ -28,18 +28,23 @@
 mcmcsa <- function(dat, L, lamcon, mdls = NULL, 
 	guessvec = NULL, burnin = 10000, N = 100000){
 
+
+	#first confirm first column is date
 	if(class(dat[, 1] != "Date")) {
 		stop("First column is not a date")
 	}
 	
+	#separate dates and data
 	dates <- dat[, 1]
 	dat <- dat[, -1]
 	
+	
+	#set dimensions
 	P <- ncol(dat)
 	T1 <- nrow(dat)
 	
 	
-	#get indices to replace
+	#get indices correspond to id constraints
 	cond <- which(!(is.na(lamcon)), arr.ind = T)
 
 	#create arrays for output
@@ -54,13 +59,13 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 	#set first guesses
 	if(is.null(guessvec)) {
 		
+		#truncated normal for lamstar
 		temp <- matrix(rtruncnorm(L * P, a = 0), nrow = L)
-		#fix set
 		temp[cond] <- lamcon[cond]
 		lamstar[,, 1] <- temp
 		
-		temp <- matrix(rnorm(T1 * L), nrow = T1)
-		fmat[,, 1] <- exp(temp)
+		#lognormal for F
+		fmat[,, 1] <- matrix(exp(rnorm(T1 * L)), nrow = T1)
 		sigma2[,, 1] <- diag(1, P)
 		mu[, 1] <- rep(0, L)
 		xi2[, 1] <- rep(1, L)
@@ -74,7 +79,8 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 		
 		#update all parameters
 		for(j in 1 : length(guessvec)) {
-			guessvec <- gibbsfun(dat = dat, guessvec = guessvec,
+			guessvec <- gibbsfun(dat = dat, 
+				guessvec = guessvec,
 				type = names1[j])
 		}
 		
@@ -155,27 +161,37 @@ gibbsfun <- function(dat, guessvec, type) {
 	
 	
 #####
-#check this
 # normal/inv-gamma variance sampling for sigma
-sig2fun <- function(dat, guessvec, dim, name)	{
+# dat is data
+# guessvec is list of guesses
+sig2fun <- function(dat, guessvec)	{
 	
-	P <- ncol(dat)
 	fmat <- guessvec[["fmat"]]
 	lamstar <- guessvec[["lamstar"]]
 	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
+	
+	#get dimensions
+	P <- ncol(dat)
+	T1 <- nrow(dat)
 
+	#get mean
 	mean <- log(fmat %*% lambda)
 	
+	#get priors
 	pra <- 0.01
 	prb <- 0.01
 	
-	#for each constituent
-	for(p in 1 : P) {
-		sigmap <- invg(dat[, p], mean[, p], pra, prb)
-		
-		guessvec[["sigma2"]][p, p] <- sigmap
-		
-	}
+	#get posterior paramters
+	a2 <- pra + T1 / 2
+	diffs2 <- (dat - mean)^2
+	b2 <- prb + colSums(diffs2) / 2
+	
+	#sample from inv gamma
+	sigma2 <- rinvgamma(P, a2, b2)
+	sigma2 <- diag(sigma2)
+
+	#update guess
+	guessvec[["sigma2"]] <- sigma2
 	
 	guessvec
 }
@@ -184,22 +200,31 @@ sig2fun <- function(dat, guessvec, dim, name)	{
 	
 #####
 # normal/inv-gamma variance sampling for xi
+# dat is data
+# guessvec is list of guesses
 xi2fun <- function(dat, guessvec)	{
 	
-	L <- length(guessvec[["xi2"]])
 	lfmat <- log(guessvec[["fmat"]])
 	mu <- guessvec[["mu"]]
 	
+	#get dimensions
+	L <- ncol(lfmat)
+	T1 <- nrow(lfmat)
+	
+	#set prior values
 	pra <- 0.01
 	prb <- 0.01
 	
-	#for each constituent
-	for(l in 1 : L) {
-		xi2 <- invg(lfmat[, l], mu[l], pra, prb)
-		
-		guessvec[["xi2"]][l] <- xi2
-		
-	}
+	#get posterior paramters
+	a2 <- pra + T1 / 2
+	diffs2 <- (sweep(lfmat, 2, mu))^2
+	b2 <- prb + colSums(diffs2) / 2
+	
+	#sample for all sources
+	xi2 <- rinvgamma(L, a2, b2)
+
+	#update guess
+	guessvec[["xi2"]] <- xi2
 	
 	guessvec
 }
@@ -208,43 +233,40 @@ xi2fun <- function(dat, guessvec)	{
 
 
 
-#### get inverse gamma
-#b is scale
-invg <- function(x, mu, pra, prb) {
-	n <- length(x)
-	
-	a2 <- pra + n/2
-	b2 <- prb + sum((x - mu)^2) / 2
-	
-	rinvgamma(1, a2, b2)
-}
-
 
 
 
 #####
 # normal/normal mean sampling
+# dat is data
+# guessvec is list of guesses
 mufun <- function(dat, guessvec)	{
 	
-	L <- length(guessvec[["mu"]])
+
 	xi2 <- guessvec[["xi2"]]
 	lfmat <- log(guessvec[["fmat"]])
 	
+	#get dimensions
+	L <- ncol(lfmat)	
+	T1 <- nrow(lfmat)
+	
+	#set prior values
 	prmean <- 0
 	prvar <- 100
 	
-	for(l in 1 : L) {
-		
-		vars <- 1/(1/prvar + nrow(lfmat)/xi2[l])
-		
-		num <- (prmean/prvar + sum(lfmat[, l])/xi2[l])
-		mn <- num * vars
-
-		mu <- rnorm(1, mean = mn, sd = sqrt(vars))
-
-		guessvec[["mu"]] <- mu
-		
-	}
+	#get variance for all sources
+	invars <- 1 / prvar + T1 / xi2
+	vars <- 1 / invars
+	
+	#get mean for all sources
+	num <- prmean / prvar + colSums(lfmat) / xi2
+	mn <- num * vars
+	
+	#sample from independent normals
+	mu <- rnorm(L, mean = mn, sd = sqrt(vars))
+	
+	#update guess
+	guessvec[["mu"]] <- mu
 	
 	guessvec
 }
