@@ -1,58 +1,147 @@
 
 #####
-# adaptive mcmc for F?
-ffun <- function(dat, guessvec, iter, mnf, covf)	{
+# adaptive mcmc for F
+# dat is data
+# guess vec is vector of guesses
+# iter is current iteration
+# lfhist is list of length T where each item is iter X L matrix
+ffun <- function(dat, guessvec, lfhist, iter)	{
 	
+	lfmat <- guessvec[["lfmat"]]
+	
+	#set dimentions
 	T1 <- nrow(dat)
 	L <- length(guessvec[["mu"]])
-	
-	
-	for(t in 1 : T1) {
-		mn <- log(guessvec[["fmat"]][t, ])
-		
-		sk <- 2.4^2 / L
-		C0 <- diag(0.39, L)
-		covf <- 
-		
-		C1 <- sk * covf + sk * eps * diag(L)
-		cov1 <- ifelse((iter + 1) <= 15, C0, C1)
-		
-		newf <- rmvnorm(1, mean = mn, sigma = cov1)
-		
-		lhoodOLD <- lhoodf(mn, dat, guessvec, t)
-		lhoodNEW <- lhoodf(newf, dat, guessvec, t)
-		
-		prob <- min(c(1, lhoodNEW / lhoodOLD))
-		sel <- rbinom(1, 1, prob)
-		
-		newf <- ifelse(sel == 1, newf, mn)
-		
-		#may need to have normal bounded between -10000, 10000 for compact set
-		
+
+	#if next iteration will be change over, set up
+	if(iter == 14) {
+		lfhist2 <- list()
+		lfhist2[[1]] <- array(dim = c(L, L, T1))
+		lfhist2[[2]] <- array(dim = c(L, T1))
+		lfhist2[[3]] <- array(dim = c(L, T1))
+		names(lfhist2) <- c("C1", "Xt0", "Xt1")
 	}
 	
-	guessvec
+	
+	#values from Hackstadt 2014
+	sk <- 2.4^2 / L
+	eps <- 0.001
+	C0 <- diag(0.39, L)
+	
+	
+	if((iter + 1) <= 15) {
+		C1 <- array(C0, dim = c(L, L, T1))
+	}else{
+		C1 <- lfhist[["C1"]]
+		}
+	
+	#for each day
+	for(t in 1 : T1) {
+		
+		#get mean
+		mn <- lfmat[t, ]
+	
+		#sample LFs
+		newlf <- rmvnorm(1, mean = mn, sigma = C1[, , t])
+		
+		#get lhoods
+		lhoodOLD <- loglhoodf(mn, dat, guessvec, t)
+		lhoodNEW <- loglhoodf(newlf, dat, guessvec, t)
+		
+		#acceptance
+		lprob <- min(0, lhoodNEW - lhoodOLD)
+		lprob <- ifelse(is.na(prob), 0, prob)
+		unif1 <- runif(1)
+		
+		#update guess, MAKE SURE TO EXPONENTIATE
+		if(log(unif1) <= lprob) {
+			if(min(newlf) < -80 | max(newlf) > 80) {
+				browser()
+			}
+			guessvec[["lfmat"]][t, ] <- newlf
+		}else{
+			newlf <- mn
+			
+		}
+				
+		#bound Normal between -10000, 10000 for compact set?
+		
+		#record history
+		if((iter + 1) < 15) {
+			lfhist[[t]] <- rbind(lfhist[[t]], newlf)
+			
+		#do first update	
+		}else if((iter + 1) == 15){
+			lcurr <- rbind(lfhist[[t]], newlf)
+			lfhist2[["C1"]][,, t] <- cov(lcurr)
+			Xt0 <- apply(lfhist[[t]], 2, mean)
+			lfhist2[["Xt0"]][, t] <- Xt0
+			lfhist2[["Xt1"]][, t] <- (Xt0 * (iter - 1) + newlf) / iter
+
+		#update rest based on recursion		
+		}else{
+			
+			#mean of two back will be mean of one back
+			Xt0 <- lfhist[["Xt1"]][, t]
+			lfhist[["Xt0"]][, t] <- Xt0
+			# add in current
+			Xt1 <- (Xt0 * (iter - 1) + newlf) / iter
+			lfhist[["Xt1"]][, t] <- Xt1
+			
+			midd <- iter * Xt0 * t(Xt0) - (iter + 1) * Xt1 * t(Xt1)
+			midd <- midd + newlf * t(newlf) + eps * diag(L)
+			C1 <- (iter - 1)/iter * C1 + sk/iter * midd
+			
+			lfhist[["C1"]][,, t] <- C1
+			
+
+		}
+		
+			
+			
+			
+
+		
+	}#end loop over t
+	
+	
+	if((iter + 1) == 15) {
+		lfhist <- lfhist2
+	}
+	
+	print(min(guessvec[["lfmat"]]))
+	out <- list(guessvec, lfhist)
+	names(out) <- c("guessvec", "lfhist")
+	out
 }
 
 
 
 
-
-lhoodf <- function(fmat, dat, guessvec, t) {
+#lhood for F
+# fmat is current guess for F
+# dat is data
+# guessvec is list of guesses
+# t is day
+loglhoodf <- function(lfmat, dat, guessvec, t) {
 	
 	#likelihood of data
-	guessvec[["fmat"]] <- fmat
-	first <- ly(dat, guessvec, t)
+	guessvec[["lfmat"]][t, ] <- lfmat
+	ly <- logly(dat, guessvec, t = t)
 	
 	
 	#likelihood of f
-	lfmat <- log(guessvec[["fmat"]][t, ])
+	lfmat <- guessvec[["lfmat"]][t, ]
 	xi2 <- guessvec[["xi2"]]
 	mu <- guessvec[["mu"]]
-	second <- -sum(1/ (2 * xi2) * ((lfmat - mu) ^ 2))
-	second <- exp(second)
 	
-	first * second
+	if(min(lfmat) > -10000 & max(lfmat) < 10000) {
+		lf <- -sum(1/ (2 * xi2) * ((lfmat - mu) ^ 2))
+	}else {
+		lf <- -Inf
+	}
+	
+	ly + lf
 }
 
 
@@ -62,13 +151,14 @@ lhoodf <- function(fmat, dat, guessvec, t) {
 # guessvec is guesses
 # t is which day
 # p is which constituent
-ly <- function(dat, guessvec, t = NULL, p = NULL) {
+logly <- function(dat, guessvec, t = NULL, p = NULL) {
 	
 	#first log data
 	ldat <- log(dat)
 	
 	#get guesses
-	fmat <- guessvec[["fmat"]]
+	lfmat <- guessvec[["lfmat"]]
+	fmat <- exp(lfmat)
 	lamstar <- guessvec[["lamstar"]]
 	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
 	sigma2 <- guessvec[["sigma2"]]
@@ -81,11 +171,8 @@ ly <- function(dat, guessvec, t = NULL, p = NULL) {
 	
 		#get in exp
 		diffsq <- (ldat - mn)
-		sweeps <- sweep(diffsq, 2, diag(sigma2) * 2, "/")
-		rs <- -rowSums(sweeps)
-		
-		#exp
-		first <- exp(rs)
+		sweeps <- sweep(diffsq, 2, sigma2 * 2, "/")
+		llhood <- -rowSums(sweeps)
 		
 	# if want one day
 	}else if(is.null(p)){
@@ -94,8 +181,7 @@ ly <- function(dat, guessvec, t = NULL, p = NULL) {
 		ldat <- ldat[t, ]
 		#get mean
 		mn <- log(t(fmat[t, ]) %*% lambda)
-		first <- -sum((ldat - mn)^2 / (2 * diag(sigma2)))
-		first <- exp(first)
+		llhood <- -sum((ldat - mn)^2 / (2 * sigma2))
 		
 	# if want one constituent
 	}else if(is.null(t)) {
@@ -105,18 +191,17 @@ ly <- function(dat, guessvec, t = NULL, p = NULL) {
 		
 		#get mean
 		mn <- log(fmat %*% lambda[, p])
-		eachday <- (ldat - mn)^2 / (2 * sigma2[p, p])
-		first <- exp(-sum(eachday))
+		llhood <- -sum((ldat - mn)^2 / (2 * sigma2[p]))
 		
 	#one constituent, one day	
 	} else{
 		
 		ldat <- ldat[t, p]
 		mn <- log(sum(fmat[t, ] * lambda[, p]))
-		first <- exp(-(ldat - mean)^2 / (2 * sigma2[p, p]))
+		llhood <- -(ldat - mean)^2 / (2 * sigma2[p])
 	}
 	
-	first
+	llhood
 	
 }
 	
