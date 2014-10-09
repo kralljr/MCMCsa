@@ -30,7 +30,7 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 
 
 	#first confirm first column is date
-	if(class(dat[, 1] != "Date")) {
+	if(class(dat[, 1]) != "Date") {
 		stop("First column is not a date")
 	}
 	
@@ -49,47 +49,59 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 
 	#create arrays for output
 	lamstar <- array(dim = c(L, P, N - burnin ))
-	fmat <-  array(dim = c(T1, L, N - burnin))
-	sigma2 <- array(dim = c(P, P, N - burnin))
+	lfmat <-  array(dim = c(T1, L, N - burnin))
+	# sigma2 <- array(dim = c(P, P, N - burnin))
+	sigma2 <- array(dim = c(P, N - burnin))
 	mu <- array(dim = c(L, N - burnin))
 	xi2 <- array(dim = c(L, N - burnin))
 	
-	names1 <- c("lamstar", "fmat", "sigma2", "mu", "xi2")
+	names1 <- c("lamstar", "lfmat", "sigma2", "mu", "xi2")
 	
 	#set first guesses
 	if(is.null(guessvec)) {
 		
 		#truncated normal for lamstar
-		temp <- matrix(rtruncnorm(L * P, a = 0), nrow = L)
-		temp[cond] <- lamcon[cond]
-		lamstar[,, 1] <- temp
+		lamstarG <- matrix(rtruncnorm(L * P, a = 0), nrow = L)
+		lamstarG[cond] <- lamcon[cond]
 		
 		#lognormal for F
-		fmat[,, 1] <- matrix(exp(rnorm(T1 * L)), nrow = T1)
-		sigma2[,, 1] <- diag(1, P)
-		mu[, 1] <- rep(0, L)
-		xi2[, 1] <- rep(1, L)
-		guessvec <- list(lamstar, fmat, sigma2, mu, xi2)
+		lfmatG <- matrix((rnorm(T1 * L)), nrow = T1)
+		# sigma2G <- diag(1, P)
+		sigma2G <- rep(1, P)		
+		muG <- rep(0, L)
+		xi2G <- rep(1, L)
+		guessvec <- list(lamstarG, lfmatG, sigma2G, muG, xi2G)
 		names(guessvec) <- names1
+	}
+	
+	
+	#get lfhist
+	lfhist <- list(length = T1)
+	for(t in 1 : T1) {
+		lfhist[[t]] <- lfmatG[t, ]
 	}
 	
 
 	#for each iteration (N large)
 	for (i in 1 : N) {
+		print(i)
 		
 		#update all parameters
 		for(j in 1 : length(guessvec)) {
-			guessvec <- gibbsfun(dat = dat, 
-				guessvec = guessvec,
-				type = names1[j])
+			out <- gibbsfun(dat = dat, 
+				guessvec = guessvec, lamcon = lamcon,
+				type = names1[j], lfhist = lfhist, iter = i)
+			lfhist <- out[["lfhist"]]
+			guessvec <- out[["guessvec"]]
 		}
 		
 		
 		#if we are past the burnin period, save
 		if (i > burnin) {
 			lamstar[, , i - burnin] <- guessvec[["lamstar"]]
-			fmat[, , i - burnin] <- guessvec[["fmat"]]
-			sigma2[, , i - burnin] <- guessvec[["sigma2"]]
+			lfmat[, , i - burnin] <- guessvec[["lfmat"]]
+			# sigma2[, , i - burnin] <- guessvec[["sigma2"]]
+			sigma2[, i - burnin] <- guessvec[["sigma2"]]
 			mu[, i - burnin] <- guessvec[["mu"]]
 			xi2[, i - burnin] <- guessvec[["xi2"]]
 		}
@@ -100,7 +112,7 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 	}
 	
 	#create output
-	listout <- list(lamstar, fmat, sigma, mu, xi)
+	listout <- list(lamstar, lfmat, sigma2, mu, xi2)
 	names(listout) <- names1
 	
 	
@@ -128,14 +140,16 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 ##########################################
 #update to new guess
 ##########################################
-gibbsfun <- function(dat, guessvec, type) {
-		
+gibbsfun <- function(dat, guessvec, lamcon, type, lfhist, iter) {
+	print(type)
 	if(type == "lamstar") {
-		guessvec <- lamfun(dat, guessvec)
+		guessvec <- lamfun(dat, guessvec, lamcon)
 		
-	} else if(type == "fmat") {
+	} else if(type == "lfmat") {
 		
-		guessvec <- ffun(dat, guessvec)
+		out <- ffun(dat, guessvec, lfhist, iter)
+		guessvec <- out[["guessvec"]]
+		lfhist <- out[["lfhist"]]
 		
 	} else if(type == "mu") {
 		guessvec <- mufun(dat, guessvec)
@@ -150,8 +164,10 @@ gibbsfun <- function(dat, guessvec, type) {
 		stop("Error: type not recognized")	
 	}		
 		
-	guessvec
-	}
+	out <- list(guessvec, lfhist)
+	names(out) <- c("guessvec", "lfhist")
+	out
+}
 	
 	
 	
@@ -166,7 +182,8 @@ gibbsfun <- function(dat, guessvec, type) {
 # guessvec is list of guesses
 sig2fun <- function(dat, guessvec)	{
 	
-	fmat <- guessvec[["fmat"]]
+	lfmat <- guessvec[["lfmat"]]
+	fmat <- exp(lfmat)
 	lamstar <- guessvec[["lamstar"]]
 	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
 	
@@ -188,7 +205,7 @@ sig2fun <- function(dat, guessvec)	{
 	
 	#sample from inv gamma
 	sigma2 <- rinvgamma(P, a2, b2)
-	sigma2 <- diag(sigma2)
+	# sigma2 <- diag(sigma2)
 
 	#update guess
 	guessvec[["sigma2"]] <- sigma2
@@ -204,7 +221,7 @@ sig2fun <- function(dat, guessvec)	{
 # guessvec is list of guesses
 xi2fun <- function(dat, guessvec)	{
 	
-	lfmat <- log(guessvec[["fmat"]])
+	lfmat <- guessvec[["lfmat"]]
 	mu <- guessvec[["mu"]]
 	
 	#get dimensions
@@ -244,7 +261,7 @@ mufun <- function(dat, guessvec)	{
 	
 
 	xi2 <- guessvec[["xi2"]]
-	lfmat <- log(guessvec[["fmat"]])
+	lfmat <- guessvec[["lfmat"]]
 	
 	#get dimensions
 	L <- ncol(lfmat)	
