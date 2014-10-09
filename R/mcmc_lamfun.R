@@ -3,7 +3,7 @@
 # random walk for lambda
 #dat is data
 #guessvec is current guesses
-lamfun <- function(dat, guessvec)	{
+lamfun <- function(dat, guessvec, lamcon)	{
 	
 	
 	#set old guess
@@ -14,25 +14,35 @@ lamfun <- function(dat, guessvec)	{
 	P <- ncol(lamstar)
 	
 	#set variance for proposal distribution
-	sd1 <- 0.1
+	sd1 <- 1
 	
 	#propose
-	newlam <- rnorm(L * P, mean = lamstar, sd = sd1)
+	newlam <- matrix(rnorm(L * P, mean = lamstar, sd = sd1), 
+		nrow = L)
 	
 	for(l in 1 : L) {
 		for(p in 1 : P) {
 			#propose
-			lamstarNEW <- lamstar
-			lamstarNEW[l, p] <- newlam[l, p]
+			if(newlam[l, p] >= 0 & is.na(lamcon[l, p])) {
+				
+				lamstarNEW <- lamstar
+				lamstarNEW[l, p] <- newlam[l, p]
+				
+				#compute lhoods
+				lhoodOLD <- loglam(lamstar, dat, guessvec, p)
+				lhoodNEW <- loglam(lamstarNEW, dat, guessvec, p)
+				
+				#decide whether to accept
+				lprob <- min(0, lhoodNEW - lhoodOLD)
+				lprob <- ifelse(is.na(prob), 0, prob)
+				unif1 <- runif(1)
+				#sel <- rbinom(1, 1, prob)
+	
+				if(log(unif1) <= lprob) {
+					lamstar <- lamstarNEW
+				}
 			
-			#compute lhoods
-			lhoodOLD <- lhoodlam(lamstar, dat, guessvec, p)
-			lhoodNEW <- lhoodlam(lamstarNEW, dat, guessvec, p)
-			
-			#decide whether to accept
-			prob <- min(1, lhoodNEW / lhoodOLD)
-			sel <- rbinom(1, 1, prob)
-			lamstar <- ifelse(sel == 1, lamstarNEW, lamstar)
+			}
 
 		}
 	}
@@ -48,21 +58,21 @@ lamfun <- function(dat, guessvec)	{
 #lamstar is current guess
 #dat is data
 # guess is other current guesses
-lhoodlam <- function(lamstar, dat, guessvec, p) {
+loglam <- function(lamstar, dat, guessvec, p) {
 	
 	#update guess
 	guessvec[["lamstar"]] <- lamstar
 	
 	#likelihood of data
-	first <- ly(dat, guessvec, p)
+	ly <- logly(dat, guessvec, p = p)
 	
 	#set prior values
 	mn <- -0.5
 	sd <- sqrt(0.588)
 	
 	#get truncated normal density
-	second <- dtruncnorm(lamstar, a = 0, mean = mn, sd = sd)
+	lam <- dtruncnorm(lamstar, a = 0, mean = mn, sd = sd)
 	
-	first * second
+	ly +  log(lam)
 }
 
