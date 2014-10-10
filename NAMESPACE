@@ -2,5 +2,6 @@
 
 export(mcmcsa)
 import(MCMCpack)
+import(corpcor)
 import(mvtnorm)
 import(truncnorm)

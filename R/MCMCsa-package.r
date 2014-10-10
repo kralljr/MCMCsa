@@ -22,5 +22,6 @@
 #' @docType package
 #' @import MCMCpack
 #' @import truncnorm
+#' @import corpcor
 #' @import mvtnorm
 NULL
