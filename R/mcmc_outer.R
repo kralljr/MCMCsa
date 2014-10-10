@@ -44,6 +44,16 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 	T1 <- nrow(dat)
 	
 	
+	#if mdl, then censor data
+	if(!(is.null(mdls))) {
+		bdls <- 1 * (dat < mdls)
+		dat[which(bdls == 1, arr.ind = T)] <- NA
+	}else{
+		bdls <- NULL
+	}
+	
+	
+	
 	#get indices correspond to id constraints
 	cond <- which(!(is.na(lamcon)), arr.ind = T)
 
@@ -75,6 +85,29 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 	}
 	
 	
+	
+	if(!(is.null(mdls))) {
+		names1 <- c(names1, "ly")
+		ldat <- array(dim = c(T1, P, N - burnin))
+		
+		#get initial guess
+		ldatG <- log(dat)
+		for(t in 1 : T1) {
+			for(p in 1 : P) {
+				if(bdls[t, p] == 1) {
+					#start with uniform between 0 and mdls
+					ldatG[t, p] <- log(runif(1, 0, mdls[t, p]))
+				}
+			}
+		}
+		
+		guessvec[["ly"]] <- ldatG
+	}else{
+		
+		guessvec[["ly"]] <- log(dat)
+		}
+
+	
 	#get lfhist
 	lfhist <- list(length = T1)
 	for(t in 1 : T1) {
@@ -88,9 +121,10 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 		
 		#update all parameters
 		for(j in 1 : length(guessvec)) {
-			out <- gibbsfun(dat = dat, 
-				guessvec = guessvec, lamcon = lamcon,
-				type = names1[j], lfhist = lfhist, iter = i)
+			out <- gibbsfun(guessvec = guessvec, 
+				lamcon = lamcon,
+				type = names1[j], lfhist = lfhist, iter = i,
+				mdls = mdls, bdls = bdls)
 			lfhist <- out[["lfhist"]]
 			guessvec <- out[["guessvec"]]
 		}
@@ -104,6 +138,10 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 			sigma2[, i - burnin] <- guessvec[["sigma2"]]
 			mu[, i - burnin] <- guessvec[["mu"]]
 			xi2[, i - burnin] <- guessvec[["xi2"]]
+			
+			if(!(is.null(mdls))) {
+				ldat[, , i - burnin] <- guessvec[["ly"]]
+			}
 		}
 			
 			
@@ -114,6 +152,10 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 	#create output
 	listout <- list(lamstar, lfmat, sigma2, mu, xi2)
 	names(listout) <- names1
+	
+	if(!(is.null(mdls))) {
+		listout[["ly"]] <- ldat
+	}
 	
 	
 	listout
@@ -140,25 +182,29 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 ##########################################
 #update to new guess
 ##########################################
-gibbsfun <- function(dat, guessvec, lamcon, type, lfhist, iter) {
+gibbsfun <- function(guessvec, lamcon, type, lfhist, 
+	iter, mdls, bdls) {
 	# print(type)
 	if(type == "lamstar") {
-		guessvec <- lamfun(dat, guessvec, lamcon)
+		guessvec <- lamfun(guessvec, lamcon)
 		
 	} else if(type == "lfmat") {
 		
-		out <- ffun(dat, guessvec, lfhist, iter)
+		out <- ffun(guessvec, lfhist, iter)
 		guessvec <- out[["guessvec"]]
 		lfhist <- out[["lfhist"]]
 		
 	} else if(type == "mu") {
-		guessvec <- mufun(dat, guessvec)
+		guessvec <- mufun(guessvec)
 		
 	} else if(type == "sigma2") {
-		guessvec <- sig2fun(dat, guessvec)
+		guessvec <- sig2fun(guessvec)
 		
 	} else if(type == "xi2") {
-		guessvec <- xi2fun(dat, guessvec)
+		guessvec <- xi2fun(guessvec)
+		
+	} else if(type == "ly") {
+		guessvec <- yfun(guessvec)
 		
 	}else{
 		stop("Error: type not recognized")	
@@ -180,12 +226,16 @@ gibbsfun <- function(dat, guessvec, lamcon, type, lfhist, iter) {
 # normal/inv-gamma variance sampling for sigma
 # dat is data
 # guessvec is list of guesses
-sig2fun <- function(dat, guessvec)	{
+sig2fun <- function(guessvec)	{
+	
+	
+	dat <- exp(guessvec[["ly"]])
 	
 	lfmat <- guessvec[["lfmat"]]
 	fmat <- exp(lfmat)
 	lamstar <- guessvec[["lamstar"]]
 	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
+
 	
 	#get dimensions
 	P <- ncol(dat)
@@ -219,7 +269,9 @@ sig2fun <- function(dat, guessvec)	{
 # normal/inv-gamma variance sampling for xi
 # dat is data
 # guessvec is list of guesses
-xi2fun <- function(dat, guessvec)	{
+xi2fun <- function(guessvec)	{
+	
+	dat <- exp(guessvec[["ly"]])
 	
 	lfmat <- guessvec[["lfmat"]]
 	mu <- guessvec[["mu"]]
@@ -257,8 +309,10 @@ xi2fun <- function(dat, guessvec)	{
 # normal/normal mean sampling
 # dat is data
 # guessvec is list of guesses
-mufun <- function(dat, guessvec)	{
+mufun <- function(guessvec)	{
 	
+	
+	dat <- exp(guessvec[["ly"]])
 
 	xi2 <- guessvec[["xi2"]]
 	lfmat <- guessvec[["lfmat"]]
