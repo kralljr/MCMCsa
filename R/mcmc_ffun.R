@@ -5,7 +5,7 @@
 # guess vec is vector of guesses
 # iter is current iteration
 # lfhist is list of length T where each item is iter X L matrix
-ffun <- function(dat, guessvec, lfhist, iter)	{
+ffun <- function(dat, guessvec, lfhist, iter, bound = 80)	{
 	
 	lfmat <- guessvec[["lfmat"]]
 	
@@ -38,19 +38,22 @@ ffun <- function(dat, guessvec, lfhist, iter)	{
 	#for each day
 	for(t in 1 : T1) {
 		
+		
 		#get mean
 		mn <- lfmat[t, ]
 	
 		#sample LFs
-		newlf <- rmvnorm(1, mean = mn, sigma = C1[, , t])
+		tempC1 <- make.positive.definite(C1[,, t])
+		newlf <- rmvnorm(1, mean = mn, sigma = tempC1)
 		
 		#get lhoods
-		lhoodOLD <- loglhoodf(mn, dat, guessvec, t)
-		lhoodNEW <- loglhoodf(newlf, dat, guessvec, t)
+		lhoodOLD <- loglhoodf(mn, dat, guessvec, t, bound)
+		lhoodNEW <- loglhoodf(newlf, dat, guessvec, t, bound)
+		
 		
 		#acceptance
 		lprob <- min(0, lhoodNEW - lhoodOLD)
-		lprob <- ifelse(is.na(prob), 0, prob)
+		lprob <- ifelse(is.na(lprob), 0, lprob)
 		unif1 <- runif(1)
 		
 		#update guess, MAKE SURE TO EXPONENTIATE
@@ -60,11 +63,11 @@ ffun <- function(dat, guessvec, lfhist, iter)	{
 			}
 			guessvec[["lfmat"]][t, ] <- newlf
 		}else{
-			newlf <- mn
+			newlf <- t(matrix(mn))
 			
 		}
 				
-		#bound Normal between -10000, 10000 for compact set?
+		#bound Normal between -b, b for compact set?
 		
 		#record history
 		if((iter + 1) < 15) {
@@ -73,7 +76,8 @@ ffun <- function(dat, guessvec, lfhist, iter)	{
 		#do first update	
 		}else if((iter + 1) == 15){
 			lcurr <- rbind(lfhist[[t]], newlf)
-			lfhist2[["C1"]][,, t] <- cov(lcurr)
+			cov1 <- cov(lcurr)
+			lfhist2[["C1"]][,, t] <- cov1
 			Xt0 <- apply(lfhist[[t]], 2, mean)
 			lfhist2[["Xt0"]][, t] <- Xt0
 			lfhist2[["Xt1"]][, t] <- (Xt0 * (iter - 1) + newlf) / iter
@@ -81,18 +85,20 @@ ffun <- function(dat, guessvec, lfhist, iter)	{
 		#update rest based on recursion		
 		}else{
 			
+			newlf <- t(newlf)
 			#mean of two back will be mean of one back
-			Xt0 <- lfhist[["Xt1"]][, t]
+			Xt0 <- lfhist[["Xt1"]][, t, drop = F]
 			lfhist[["Xt0"]][, t] <- Xt0
 			# add in current
 			Xt1 <- (Xt0 * (iter - 1) + newlf) / iter
 			lfhist[["Xt1"]][, t] <- Xt1
 			
-			midd <- iter * Xt0 * t(Xt0) - (iter + 1) * Xt1 * t(Xt1)
-			midd <- midd + newlf * t(newlf) + eps * diag(L)
-			C1 <- (iter - 1)/iter * C1 + sk/iter * midd
 			
-			lfhist[["C1"]][,, t] <- C1
+			midd <- iter * Xt0 %*% t(Xt0) - (iter + 1) * Xt1 %*% t(Xt1)
+			midd <- midd + newlf %*% t(newlf) + eps * diag(L)
+			tempC1 <- (iter - 1)/iter * C1[,, t] + sk/iter * midd
+			
+			lfhist[["C1"]][,, t] <- tempC1
 			
 
 		}
@@ -123,7 +129,7 @@ ffun <- function(dat, guessvec, lfhist, iter)	{
 # dat is data
 # guessvec is list of guesses
 # t is day
-loglhoodf <- function(lfmat, dat, guessvec, t) {
+loglhoodf <- function(lfmat, dat, guessvec, t, bound) {
 	
 	#likelihood of data
 	guessvec[["lfmat"]][t, ] <- lfmat
@@ -135,7 +141,7 @@ loglhoodf <- function(lfmat, dat, guessvec, t) {
 	xi2 <- guessvec[["xi2"]]
 	mu <- guessvec[["mu"]]
 	
-	if(min(lfmat) > -10000 & max(lfmat) < 10000) {
+	if(min(lfmat) > -bound & max(lfmat) < bound) {
 		lf <- -sum(1/ (2 * xi2) * ((lfmat - mu) ^ 2))
 	}else {
 		lf <- -Inf
