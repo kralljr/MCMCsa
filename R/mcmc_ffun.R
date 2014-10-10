@@ -1,16 +1,15 @@
 
 #####
 # adaptive mcmc for F
-# dat is data
 # guess vec is vector of guesses
 # iter is current iteration
 # lfhist is list of length T where each item is iter X L matrix
-ffun <- function(dat, guessvec, lfhist, iter, bound = 80)	{
+ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 	
 	lfmat <- guessvec[["lfmat"]]
 	
 	#set dimentions
-	T1 <- nrow(dat)
+	T1 <- nrow(lfmat)
 	L <- length(guessvec[["mu"]])
 
 	#if next iteration will be change over, set up
@@ -47,8 +46,8 @@ ffun <- function(dat, guessvec, lfhist, iter, bound = 80)	{
 		newlf <- rmvnorm(1, mean = mn, sigma = tempC1)
 		
 		#get lhoods
-		lhoodOLD <- loglhoodf(mn, dat, guessvec, t, bound)
-		lhoodNEW <- loglhoodf(newlf, dat, guessvec, t, bound)
+		lhoodOLD <- loglhoodf(mn, guessvec, t, bound)
+		lhoodNEW <- loglhoodf(newlf, guessvec, t, bound)
 		
 		
 		#acceptance
@@ -126,14 +125,13 @@ ffun <- function(dat, guessvec, lfhist, iter, bound = 80)	{
 
 #lhood for F
 # fmat is current guess for F
-# dat is data
 # guessvec is list of guesses
 # t is day
-loglhoodf <- function(lfmat, dat, guessvec, t, bound) {
+loglhoodf <- function(lfmat, guessvec, t, bound) {
 	
 	#likelihood of data
 	guessvec[["lfmat"]][t, ] <- lfmat
-	ly <- logly(dat, guessvec, t = t)
+	ly <- logly(guessvec, t = t)
 	
 	
 	#likelihood of f

@@ -1,9 +1,8 @@
 
 #####
 # random walk for lambda
-#dat is data
 #guessvec is current guesses
-lamfun <- function(dat, guessvec, lamcon)	{
+lamfun <- function(guessvec, lamcon)	{
 	
 	
 	#set old guess
@@ -29,8 +28,8 @@ lamfun <- function(dat, guessvec, lamcon)	{
 				lamstarNEW[l, p] <- newlam[l, p]
 				
 				#compute lhoods
-				lhoodOLD <- loglam(lamstar, dat, guessvec, p)
-				lhoodNEW <- loglam(lamstarNEW, dat, guessvec, p)
+				lhoodOLD <- loglam(lamstar, guessvec, p)
+				lhoodNEW <- loglam(lamstarNEW, guessvec, p)
 				
 				#decide whether to accept
 				lprob <- min(0, lhoodNEW - lhoodOLD)
@@ -56,15 +55,14 @@ lamfun <- function(dat, guessvec, lamcon)	{
 
 #function to get lhood for lambda
 #lamstar is current guess
-#dat is data
 # guess is other current guesses
-loglam <- function(lamstar, dat, guessvec, p) {
+loglam <- function(lamstar, guessvec, p) {
 	
 	#update guess
 	guessvec[["lamstar"]] <- lamstar
 	
 	#likelihood of data
-	ly <- logly(dat, guessvec, p = p)
+	ly <- logly(guessvec, p = p)
 	
 	#set prior values
 	mn <- -0.5

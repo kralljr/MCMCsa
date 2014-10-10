@@ -7,7 +7,7 @@
 #' and the other parameters.  Eventually, this function will incorporate 
 #' options for concentrations observed below the MDL
 #'
-#' @param data data frame of daily constituent concentrations with date as first column
+#' @param dat data frame of daily constituent concentrations with date as first column
 #' @param L number of sources
 #' @param lamcon Matrix of sources by constituents with 1 and 0 for conditions
 #' @param mdls data frame of daily MDL values of the same dimensions of data
@@ -18,13 +18,16 @@
 #' @examples
 #' data(nycdat)
 #' data(nycmdl)
+#' data(lamcon)
 #' #fix data totals
 #' pm <- nycdat$PM25
 #' whPM <- which(colnames(nycdat) == "PM25")
 #' nycdat <- nycdat[, -whPM]
 #' whPM <- which(colnames(nycmdl) == "PM25")
 #' nycmdl <- nycmdl[, -whPM]
-#' mcmcsa(nycdat, nycmdl)
+#' L <- 4
+#' 
+#' mcmcsa(nycdat, L, lamcon)
 mcmcsa <- function(dat, L, lamcon, mdls = NULL, 
 	guessvec = NULL, burnin = 10000, N = 100000){
 
@@ -224,12 +227,10 @@ gibbsfun <- function(guessvec, lamcon, type, lfhist,
 	
 #####
 # normal/inv-gamma variance sampling for sigma
-# dat is data
 # guessvec is list of guesses
 sig2fun <- function(guessvec)	{
-	
-	
-	dat <- exp(guessvec[["ly"]])
+
+	ldat <- guessvec[["ly"]]
 	
 	lfmat <- guessvec[["lfmat"]]
 	fmat <- exp(lfmat)
@@ -238,8 +239,8 @@ sig2fun <- function(guessvec)	{
 
 	
 	#get dimensions
-	P <- ncol(dat)
-	T1 <- nrow(dat)
+	P <- ncol(ldat)
+	T1 <- nrow(ldat)
 
 	#get mean
 	mean <- log(fmat %*% lambda)
@@ -250,7 +251,7 @@ sig2fun <- function(guessvec)	{
 	
 	#get posterior paramters
 	a2 <- pra + T1 / 2
-	diffs2 <- (dat - mean)^2
+	diffs2 <- (ldat - mean)^2
 	b2 <- prb + colSums(diffs2) / 2
 	
 	#sample from inv gamma
@@ -267,12 +268,9 @@ sig2fun <- function(guessvec)	{
 	
 #####
 # normal/inv-gamma variance sampling for xi
-# dat is data
 # guessvec is list of guesses
 xi2fun <- function(guessvec)	{
-	
-	dat <- exp(guessvec[["ly"]])
-	
+		
 	lfmat <- guessvec[["lfmat"]]
 	mu <- guessvec[["mu"]]
 	
@@ -307,12 +305,9 @@ xi2fun <- function(guessvec)	{
 
 #####
 # normal/normal mean sampling
-# dat is data
 # guessvec is list of guesses
 mufun <- function(guessvec)	{
 	
-	
-	dat <- exp(guessvec[["ly"]])
 
 	xi2 <- guessvec[["xi2"]]
 	lfmat <- guessvec[["lfmat"]]

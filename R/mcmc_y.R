@@ -1,7 +1,9 @@
 
 #functions for data
 
-
+#guessvec is guesses
+#mdls is matrix of mdls for each day/constituent
+#bdls is matrix of 1/0 for whether data BDL
 yfun <- function(guessvec, mdls, bdls) {
 
 
@@ -123,7 +125,6 @@ findmean <- function(ldat, mn, sigma2, sig.misscol, wh) {
 
 
 # function to get likelihood of y
-# dat is data
 # guessvec is guesses
 # t is which day
 # p is which constituent
