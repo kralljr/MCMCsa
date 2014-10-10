@@ -120,7 +120,7 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 		print(i)
 		
 		#update all parameters
-		for(j in 1 : length(guessvec)) {
+		for(j in 1 : length(names1)) {
 			out <- gibbsfun(guessvec = guessvec, 
 				lamcon = lamcon,
 				type = names1[j], lfhist = lfhist, iter = i,
@@ -204,7 +204,7 @@ gibbsfun <- function(guessvec, lamcon, type, lfhist,
 		guessvec <- xi2fun(guessvec)
 		
 	} else if(type == "ly") {
-		guessvec <- yfun(guessvec)
+		guessvec <- yfun(guessvec, mdls, bdls)
 		
 	}else{
 		stop("Error: type not recognized")	
