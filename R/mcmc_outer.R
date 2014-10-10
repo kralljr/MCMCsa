@@ -141,7 +141,7 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 #update to new guess
 ##########################################
 gibbsfun <- function(dat, guessvec, lamcon, type, lfhist, iter) {
-	print(type)
+	# print(type)
 	if(type == "lamstar") {
 		guessvec <- lamfun(dat, guessvec, lamcon)
 		

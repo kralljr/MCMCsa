@@ -115,7 +115,7 @@ ffun <- function(dat, guessvec, lfhist, iter, bound = 80)	{
 		lfhist <- lfhist2
 	}
 	
-	print(min(guessvec[["lfmat"]]))
+	#print(min(guessvec[["lfmat"]]))
 	out <- list(guessvec, lfhist)
 	names(out) <- c("guessvec", "lfhist")
 	out
