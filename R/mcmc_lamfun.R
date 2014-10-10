@@ -34,7 +34,7 @@ lamfun <- function(dat, guessvec, lamcon)	{
 				
 				#decide whether to accept
 				lprob <- min(0, lhoodNEW - lhoodOLD)
-				lprob <- ifelse(is.na(prob), 0, prob)
+				lprob <- ifelse(is.na(lprob), 0, lprob)
 				unif1 <- runif(1)
 				#sel <- rbinom(1, 1, prob)
 	
