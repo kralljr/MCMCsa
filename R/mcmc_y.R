@@ -2,15 +2,16 @@
 #functions for data
 
 
-yfun <- function(dat, mdls, bdls, guessvec) {
+yfun <- function(guessvec, mdls, bdls) {
 
+
+	ldat <- guessvec[["ly"]]
 
 	#set guesses
 	fmat <- exp(guessvec[["lfmat"]])
 	lamstar <- guessvec[["lamstar"]]
 	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
 	sigma2 <- guessvec[["sigma2"]]
-	ly <- guessvec[["ly"]]
 	
 	
 	#get dimensions
@@ -20,8 +21,7 @@ yfun <- function(dat, mdls, bdls, guessvec) {
 	mn <- log(fmat %*% lambda)
 	
 	
-	#log data
-	ldat <- log(ly)
+	#log mdls
 	lmdls <- log(mdls)
 	
 	#get inverse of gsig
@@ -127,12 +127,10 @@ findmean <- function(ldat, mn, sigma2, sig.misscol, wh) {
 # guessvec is guesses
 # t is which day
 # p is which constituent
-logly <- function(dat, guessvec, t = NULL, p = NULL) {
-	
-	#first log data
-	ldat <- log(dat)
+logly <- function(guessvec, t = NULL, p = NULL) {
 	
 	#get guesses
+	ldat <- guessvec[["ly"]]
 	lfmat <- guessvec[["lfmat"]]
 	fmat <- exp(lfmat)
 	lamstar <- guessvec[["lamstar"]]
