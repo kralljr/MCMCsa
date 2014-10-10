@@ -7,7 +7,7 @@ mcmcsa(dat, L, lamcon, mdls = NULL, guessvec = NULL, burnin = 10000,
   N = 1e+05)
 }
 \arguments{
-\item{data}{data frame of daily constituent concentrations with date as first column}
+\item{dat}{data frame of daily constituent concentrations with date as first column}
 
 \item{L}{number of sources}
 
@@ -33,12 +33,15 @@ options for concentrations observed below the MDL
 \examples{
 data(nycdat)
 data(nycmdl)
+data(lamcon)
 #fix data totals
 pm <- nycdat$PM25
 whPM <- which(colnames(nycdat) == "PM25")
 nycdat <- nycdat[, -whPM]
 whPM <- which(colnames(nycmdl) == "PM25")
 nycmdl <- nycmdl[, -whPM]
-mcmcsa(nycdat, nycmdl)
+L <- 4
+
+mcmcsa(nycdat, L, lamcon)
 }
 
