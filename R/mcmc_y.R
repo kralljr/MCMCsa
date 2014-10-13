@@ -27,21 +27,21 @@ yfun <- function(guessvec, mdls, bdls) {
 	lmdls <- log(mdls)
 	
 	#get inverse of gsig
-	siginv <- chol2inv(chol(sigma2))
+	# siginv <- chol2inv(chol(sigma2))
 	
-	#which columns have missing
-	wcolmiss <- which(colSums(bdls) != 0)
-	sig.misscol <- array(dim = c(nrow(sigma2) - 1, 
-		ncol(sigma2) - 1, ncol(sigma2)))
+	# #which columns have missing
+	# wcolmiss <- which(colSums(bdls) != 0)
+	# sig.misscol <- array(dim = c(nrow(sigma2) - 1, 
+		# ncol(sigma2) - 1, ncol(sigma2)))
 		
-	#for each column with missingness	
-	for( i in 1 : length(wcolmiss)) {
-		num <- wcolmiss[i]
-		sigcut <- siginv[-num, -num] - siginv[num, -num] %*% 
-			t(siginv[-num, num]) / siginv[num, num]
-		#update array	
-		sig.misscol[, , num] <- sigcut
-	}
+	# #for each column with missingness	
+	# for( i in 1 : length(wcolmiss)) {
+		# num <- wcolmiss[i]
+		# sigcut <- siginv[-num, -num] - siginv[num, -num] %*% 
+			# t(siginv[-num, num]) / siginv[num, num]
+		# #update array	
+		# sig.misscol[, , num] <- sigcut
+	# }
 	
 	
 	# for each day with an observation below the MDL
@@ -54,27 +54,32 @@ yfun <- function(guessvec, mdls, bdls) {
 			#for each missing value on day i
 			for (j in 1 : length(wh_miss[[t]])) {
 				
-				datc <- ldat[t, ]
+				# datc <- ldat[t, ]
 		
 				#find conditional mean/var
-				mnv <- findmean(dat = datc, 
-					mean = mn[t, ], 
-					cov1 = sigma2, 
-					sig.misscol = sig.misscol, 
-					wh = wh_miss[[t]][j])
-	
+				# mnv <- findmean(dat = datc, 
+					# mean = mn[t, ], 
+					# cov1 = sigma2, 
+					# sig.misscol = sig.misscol, 
+					# wh = wh_miss[[t]][j])
+					
+				wh1 <- wh_miss[[t]][j]	
 				#propose truncated normal (0 to mdl)	 
 					#log scale with cond mean and var		
+					
+					
+				#does not rely on other y values	
 				newy <- rtnorm(1, 
 					lower = min(lmdls) - 10, 
-					upper = lmdls[t, wh_miss[[t]][j]],
-					mean = mnv[["mn"]], sd = mnv[["sd"]])
+					upper = lmdls[t, wh1],
+					mean = mt[t, wh1], 
+					sd = sqrt(sigma2[wh1, wh1]))
 					
 				if( is.na(newy)) {browser()}	
 		
 				#update guess
-				ldat[t, wh_miss[[t]][j]] <- newy
-				guessvec[["ly"]][t, wh_miss[[t]][j]] <- newy
+				ldat[t, wh1] <- newy
+				guessvec[["ly"]][t, wh1] <- newy
 		
 			}#end loop over j
 				
