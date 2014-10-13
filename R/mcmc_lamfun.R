@@ -28,8 +28,8 @@ lamfun <- function(guessvec, lamcon)	{
 				lamstarNEW[l, p] <- newlam[l, p]
 				
 				#compute lhoods
-				lhoodOLD <- loglam(lamstar, guessvec, p)
-				lhoodNEW <- loglam(lamstarNEW, guessvec, p)
+				lhoodOLD <- loglam(lamstar, guessvec, l, p)
+				lhoodNEW <- loglam(lamstarNEW, guessvec, l, p)
 				
 				#decide whether to accept
 				lprob <- min(0, lhoodNEW - lhoodOLD)
@@ -56,7 +56,7 @@ lamfun <- function(guessvec, lamcon)	{
 #function to get lhood for lambda
 #lamstar is current guess
 # guess is other current guesses
-loglam <- function(lamstar, guessvec, p) {
+loglam <- function(lamstar, guessvec, l, p) {
 	
 	#update guess
 	guessvec[["lamstar"]] <- lamstar
@@ -69,7 +69,7 @@ loglam <- function(lamstar, guessvec, p) {
 	sd <- sqrt(0.588)
 	
 	#get truncated normal density
-	lam <- dtruncnorm(lamstar, a = 0, mean = mn, sd = sd)
+	lam <- dtruncnorm(lamstar[l, p], a = 0, mean = mn, sd = sd)
 	
 	ly +  log(lam)
 }
