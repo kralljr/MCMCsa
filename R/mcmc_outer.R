@@ -122,7 +122,7 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 	for (i in 1 : N) {
 		print(i)
 		
-		# if(i == 90) {browser()}
+		# if(i == 53) {browser()}
 		
 		#update all parameters
 		for(j in 1 : length(names1)) {

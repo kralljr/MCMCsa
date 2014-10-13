@@ -43,11 +43,25 @@ ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 	
 		#sample LFs
 		tempC1 <- make.positive.definite(C1[,, t])
-		newlf <- rmvnorm(1, mean = mn, sigma = tempC1)
 		
-		#get lhoods
+		if(is.positive.definite(tempC1)) {
+			newlf <- rmvnorm(1, mean = mn, sigma = tempC1)
+			lhoodNEW <- loglhoodf(newlf, guessvec, t, bound)
+		}else{
+			newlf <- rmvnorm(1, mean = mn, sigma = tempC1, method = "svd")
+			
+			if(length(which(is.na(newlf))) > 0) {
+				print("sigma not pd")
+				lhoodNEW <- -Inf
+			}else{
+				print("svd")
+				lhoodNEW <- loglhoodf(newlf, guessvec, t, bound)
+				}
+			
+		}
+
 		lhoodOLD <- loglhoodf(mn, guessvec, t, bound)
-		lhoodNEW <- loglhoodf(newlf, guessvec, t, bound)
+		
 		
 		
 		#acceptance
@@ -55,9 +69,9 @@ ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 		lprob <- ifelse(is.na(lprob), 0, lprob)
 		unif1 <- runif(1)
 		
-		#update guess, MAKE SURE TO EXPONENTIATE
+		#update guess
 		if(log(unif1) <= lprob) {
-			if(min(newlf) < -80 | max(newlf) > 80) {
+			if(min(newlf) < -bound | max(newlf) > bound) {
 				browser()
 			}
 			guessvec[["lfmat"]][t, ] <- newlf
@@ -138,6 +152,7 @@ loglhoodf <- function(lfmat, guessvec, t, bound) {
 	lfmat <- guessvec[["lfmat"]][t, ]
 	xi2 <- guessvec[["xi2"]]
 	mu <- guessvec[["mu"]]
+	
 	
 	if(min(lfmat) > -bound & max(lfmat) < bound) {
 		lf <- -sum(1/ (2 * xi2) * ((lfmat - mu) ^ 2))
