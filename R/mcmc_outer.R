@@ -235,7 +235,7 @@ sig2fun <- function(guessvec)	{
 	lfmat <- guessvec[["lfmat"]]
 	fmat <- exp(lfmat)
 	lamstar <- guessvec[["lamstar"]]
-	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
+	lambda <- sweep(lamstar, 1, rowSums(lamstar), "/")
 
 	
 	#get dimensions

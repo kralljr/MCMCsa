@@ -12,7 +12,7 @@ yfun <- function(guessvec, mdls, bdls) {
 	#set guesses
 	fmat <- exp(guessvec[["lfmat"]])
 	lamstar <- guessvec[["lamstar"]]
-	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
+	lambda <- sweep(lamstar, 1, rowSums(lamstar), "/")
 	sigma2 <- guessvec[["sigma2"]]
 	
 	
@@ -135,7 +135,7 @@ logly <- function(guessvec, t = NULL, p = NULL) {
 	lfmat <- guessvec[["lfmat"]]
 	fmat <- exp(lfmat)
 	lamstar <- guessvec[["lamstar"]]
-	lambda <- sweep(lamstar, 2, colSums(lamstar), "/")
+	lambda <- sweep(lamstar, 1, rowSums(lamstar), "/")
 	sigma2 <- guessvec[["sigma2"]]
 	
 	#if want all
