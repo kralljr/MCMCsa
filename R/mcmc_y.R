@@ -25,67 +25,29 @@ yfun <- function(guessvec, mdls, bdls) {
 	
 	#log mdls
 	lmdls <- log(mdls)
-	
-	#get inverse of gsig
-	# siginv <- chol2inv(chol(sigma2))
-	
-	# #which columns have missing
-	# wcolmiss <- which(colSums(bdls) != 0)
-	# sig.misscol <- array(dim = c(nrow(sigma2) - 1, 
-		# ncol(sigma2) - 1, ncol(sigma2)))
-		
-	# #for each column with missingness	
-	# for( i in 1 : length(wcolmiss)) {
-		# num <- wcolmiss[i]
-		# sigcut <- siginv[-num, -num] - siginv[num, -num] %*% 
-			# t(siginv[-num, num]) / siginv[num, num]
-		# #update array	
-		# sig.misscol[, , num] <- sigcut
-	# }
-	
-	
+	minmdls <- min(lmdls) - 10
+
 	# for each day with an observation below the MDL
 	for (t in 1 : T1) {
 		
+		smiss <- sum(bdls[t, ])
+		if(smiss > 0) {
+			#draw a
+			wh_miss <- which(bdls[t, ] > 0)
 
-		#if which missing greater than 0
-		if(length(wh_miss[[t]]) > 0) {
-		
-			#for each missing value on day i
-			for (j in 1 : length(wh_miss[[t]])) {
+			temp <- rtruncnorm(1, 
+				lower = minmdls, 
+				upper = lmdls[t, wh_miss],
+				mean = mn[t, wh_miss], 
+				sd = sqrt(sigma2[wh_miss]))
 				
-				# datc <- ldat[t, ]
-		
-				#find conditional mean/var
-				# mnv <- findmean(dat = datc, 
-					# mean = mn[t, ], 
-					# cov1 = sigma2, 
-					# sig.misscol = sig.misscol, 
-					# wh = wh_miss[[t]][j])
-					
-				wh1 <- wh_miss[[t]][j]	
-				#propose truncated normal (0 to mdl)	 
-					#log scale with cond mean and var		
-					
-					
-				#does not rely on other y values	
-				newy <- rtnorm(1, 
-					lower = min(lmdls) - 10, 
-					upper = lmdls[t, wh1],
-					mean = mt[t, wh1], 
-					sd = sqrt(sigma2[wh1, wh1]))
-					
-				if( is.na(newy)) {browser()}	
-		
-				#update guess
-				ldat[t, wh1] <- newy
-				guessvec[["ly"]][t, wh1] <- newy
-		
-			}#end loop over j
+			newy <- ldat[t, ]
+			newy[wh_miss] <- temp
 				
-				
-		}#end check
-	
+			guessvec[["ly"]][t, ] <- newy	
+		}
+		
+					
 	
 	}#end loop over t	
 				
@@ -135,7 +97,22 @@ findmean <- function(ldat, mn, sigma2, sig.misscol, wh) {
 # p is which constituent
 logly <- function(guessvec, t = NULL, p = NULL) {
 	
-	#get guesses
+	
+	if(type == "normal") {
+		llhood <- logly.normal(guessvec, t, p)
+		
+	}else if(type == "mixture") {
+		llhood <- logly.mixture(guessvec, t, p)
+		
+	}
+	
+	llhood
+	
+}
+
+
+
+logly.normal <- function(guessvec, t, p) {
 	ldat <- guessvec[["ly"]]
 	lfmat <- guessvec[["lfmat"]]
 	fmat <- exp(lfmat)
@@ -182,6 +159,74 @@ logly <- function(guessvec, t = NULL, p = NULL) {
 	}
 	
 	llhood
+}
+
+
+
+
+
+
+logly.mixture <- function(guessvec, bdls, t, p) {
+	ldat <- guessvec[["ly"]]
+	lfmat <- guessvec[["lfmat"]]
+	fmat <- exp(lfmat)
+	lamstar <- guessvec[["lamstar"]]
+	lambda <- sweep(lamstar, 1, rowSums(lamstar), "/")
+	sigma2 <- guessvec[["sigma2"]]
+	psi2 <- guessvec[["psi2"]]
+	
+	
+		#if want all
+	if(is.null(t) & is.null(p)) {
+		T1 <- nrow(ldat)
+		
+		#get mean
+		mn <- log(fmat %*% lambda)
+	
+		#get in exp
+		diffsq <- (ldat - mn)
+		
+		vars1 <- matrix(rep(sigma2, T1), byrow = T, nrow = T1)
+		vars2 <- matrix(rep(psi2, T1), byrow = T, nrow = T1)
+		vars <- vars1 + vars2 * bdls
+		
+		llhood <- -rowSums(diffsq / (vars * 2))
+		
+	# if want one day
+	}else if(is.null(p)){
+		
+		#get data
+		ldat <- ldat[t, ]
+		#get mean
+		mn <- log(t(fmat[t, ]) %*% lambda)
+		
+		vars <- sigma2 + psi2 * bdls[t, ]
+		llhood <- -sum((ldat - mn)^2 / (2 * vars))
+		
+	# if want one constituent
+	}else if(is.null(t)) {
+		
+		#get data
+		ldat <- ldat[, p]
+		
+		#get mean
+		mn <- log(fmat %*% lambda[, p])
+		vars <- sigma2[p] + bdls[, p] * psi2[p]
+		
+		llhood <- -sum((ldat - mn)^2 / (2 * vars))
+		
+	#one constituent, one day	
+	} else{
+		
+		ldat <- ldat[t, p]
+		mn <- log(sum(fmat[t, ] * lambda[, p]))
+		
+		vars <- sigma2[p] + psi2[p] * bdls[t, p]
+		llhood <- -(ldat - mean)^2 / (2 * vars)
+	}
+	
+	llhood
+	
 	
 }
 	
