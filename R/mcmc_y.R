@@ -95,7 +95,7 @@ findmean <- function(ldat, mn, sigma2, sig.misscol, wh) {
 # guessvec is guesses
 # t is which day
 # p is which constituent
-logly <- function(guessvec, t = NULL, p = NULL) {
+logly <- function(guessvec, t = NULL, p = NULL, type = "normal") {
 	
 	
 	if(type == "normal") {
