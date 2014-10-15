@@ -28,7 +28,7 @@
 #' L <- 4
 #' 
 #' mcmcsa(nycdat, L, lamcon)
-mcmcsa <- function(dat, L, lamcon, mdls = NULL, 
+mcmcsa <- function(dat, L, lamcon, sources, mdls = NULL, 
 	guessvec = NULL, burnin = 10000, N = 100000){
 
 
@@ -67,6 +67,16 @@ mcmcsa <- function(dat, L, lamcon, mdls = NULL,
 	sigma2 <- array(dim = c(P, N - burnin))
 	mu <- array(dim = c(L, N - burnin))
 	xi2 <- array(dim = c(L, N - burnin))
+	
+	#dimnames
+	cons <- colnames(dat)
+	days <- seq(1, T1)
+	iters <- seq(1, dim(lamstar)[3])
+	dimnames(lamstar) <- list(sources, cons, iters)
+	dimnames(lfmat) <- list(days, sources, iters)
+	dimnames(sigma2) <- list(cons, iters)
+	dimnames(mu) <- list(sources, iters)
+	dimnames(xi2) <- list(sources, iters)	
 	
 	names1 <- c("lamstar", "lfmat", "sigma2", "mu", "xi2")
 	
@@ -251,7 +261,7 @@ sig2fun <- function(guessvec)	{
 	pra <- 0.01
 	prb <- 0.01
 	
-	#get posterior paramters
+	#get posterior parameters
 	a2 <- pra + T1 / 2
 	diffs2 <- (ldat - mean)^2
 	b2 <- prb + colSums(diffs2) / 2
