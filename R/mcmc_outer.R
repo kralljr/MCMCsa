@@ -28,7 +28,7 @@
 #' L <- 4
 #' 
 #' mcmcsa(nycdat, L, lamcon)
-mcmcsa <- function(dat, L, lamcon, sources, mdls = NULL, 
+mcmcsa <- function(dat, lamcon, mdls = NULL, 
 	guessvec = NULL, burnin = 10000, N = 100000){
 
 
@@ -45,6 +45,7 @@ mcmcsa <- function(dat, L, lamcon, sources, mdls = NULL,
 	#set dimensions
 	P <- ncol(dat)
 	T1 <- nrow(dat)
+	L <- nrow(lamcon)
 	
 	
 	#if mdl, then censor data
@@ -71,6 +72,7 @@ mcmcsa <- function(dat, L, lamcon, sources, mdls = NULL,
 	#dimnames
 	cons <- colnames(dat)
 	days <- seq(1, T1)
+	sources <- rownames(lamcon)
 	iters <- seq(1, dim(lamstar)[3])
 	dimnames(lamstar) <- list(sources, cons, iters)
 	dimnames(lfmat) <- list(days, sources, iters)
