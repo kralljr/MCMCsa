@@ -13,7 +13,7 @@ ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 	L <- length(guessvec[["mu"]])
 
 	#if next iteration will be change over, set up
-	if(iter == 14) {
+	if((iter + 1) == 15) {
 		lfhist2 <- list()
 		lfhist2[[1]] <- array(dim = c(L, L, T1))
 		lfhist2[[2]] <- array(dim = c(L, T1))
@@ -41,9 +41,10 @@ ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 		#get mean
 		mn <- lfmat[t, ]
 	
-		#sample LFs
+		#make sure covariance is PD
 		tempC1 <- make.positive.definite(C1[,, t])
 		
+		#sample LFs
 		if(is.positive.definite(tempC1)) {
 			newlf <- rmvnorm(1, mean = mn, sigma = tempC1)
 			lhoodNEW <- loglhoodf(newlf, guessvec, t, bound)
@@ -66,7 +67,7 @@ ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 		
 		#acceptance
 		lprob <- min(0, lhoodNEW - lhoodOLD)
-		lprob <- ifelse(is.na(lprob), 0, lprob)
+		lprob <- ifelse(is.na(lprob), -Inf, lprob)
 		unif1 <- runif(1)
 		
 		#update guess
@@ -76,6 +77,7 @@ ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 			}
 			guessvec[["lfmat"]][t, ] <- newlf
 		}else{
+			#replace current for newlf
 			newlf <- t(matrix(mn))
 			
 		}
@@ -90,7 +92,7 @@ ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 		}else if((iter + 1) == 15){
 			lcurr <- rbind(lfhist[[t]], newlf)
 			cov1 <- cov(lcurr)
-			lfhist2[["C1"]][,, t] <- cov1
+			lfhist2[["C1"]][,, t] <- sk * cov1 + sk * eps * diag(L)
 			Xt0 <- apply(lfhist[[t]], 2, mean)
 			lfhist2[["Xt0"]][, t] <- Xt0
 			lfhist2[["Xt1"]][, t] <- (Xt0 * (iter - 1) + newlf) / iter
@@ -155,6 +157,7 @@ loglhoodf <- function(lfmat, guessvec, t, bound) {
 	
 	
 	if(min(lfmat) > -bound & max(lfmat) < bound) {
+		#note lfmat is only vector
 		lf <- -sum(1/ (2 * xi2) * ((lfmat - mu) ^ 2))
 	}else {
 		lf <- -Inf
