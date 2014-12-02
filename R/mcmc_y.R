@@ -127,9 +127,9 @@ logly.normal <- function(guessvec, t, p) {
 		mn <- log(fmat %*% lambda)
 	
 		#get in exp
-		diffsq <- (ldat - mn)
+		diffsq <- (sweep(ldat, 2, mn))^2
 		sweeps <- sweep(diffsq, 2, sigma2 * 2, "/")
-		llhood <- -rowSums(sweeps)
+		llhood <- -sum(sweeps)
 		
 	# if want one day
 	}else if(is.null(p)){
