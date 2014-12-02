@@ -89,7 +89,7 @@ mcmcsa <- function(dat, lamcon, mdls = NULL,
 		lamstarG <- matrix(rtruncnorm(L * P, a = 0), nrow = L)
 		lamstarG[cond] <- lamcon[cond]
 		
-		#lognormal for F
+		#MVnormal for logF
 		lfmatG <- matrix((rnorm(T1 * L)), nrow = T1)
 		# sigma2G <- diag(1, P)
 		sigma2G <- rep(1, P)		
@@ -100,7 +100,7 @@ mcmcsa <- function(dat, lamcon, mdls = NULL,
 	}
 	
 	
-	
+	#get guess for log data
 	if(!(is.null(mdls))) {
 		names1 <- c(names1, "ly")
 		ldat <- array(dim = c(T1, P, N - burnin))
