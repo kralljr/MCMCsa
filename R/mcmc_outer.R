@@ -29,7 +29,7 @@
 #' 
 #' mcmcsa(nycdat, L, lamcon)
 mcmcsa <- function(dat, lamcon, mdls = NULL, 
-	guessvec = NULL, burnin = 10000, N = 100000){
+	guessvec = NULL, burnin = 10000, N = 100000, fix = NULL){
 
 
 	#first confirm first column is date
@@ -92,7 +92,7 @@ mcmcsa <- function(dat, lamcon, mdls = NULL,
 		#MVnormal for logF
 		lfmatG <- matrix((rnorm(T1 * L)), nrow = T1)
 		# sigma2G <- diag(1, P)
-		sigma2G <- rep(1, P)		
+		sigma2G <- rep(.0001, P)		
 		muG <- rep(0, L)
 		xi2G <- rep(1, L)
 		guessvec <- list(lamstarG, lfmatG, sigma2G, muG, xi2G)
@@ -141,7 +141,7 @@ mcmcsa <- function(dat, lamcon, mdls = NULL,
 			out <- gibbsfun(guessvec = guessvec, 
 				lamcon = lamcon,
 				type = names1[j], lfhist = lfhist, iter = i,
-				mdls = mdls, bdls = bdls)
+				mdls = mdls, bdls = bdls, fix = fix)
 			lfhist <- out[["lfhist"]]
 			guessvec <- out[["guessvec"]]
 		}
@@ -200,31 +200,31 @@ mcmcsa <- function(dat, lamcon, mdls = NULL,
 #update to new guess
 ##########################################
 gibbsfun <- function(guessvec, lamcon, type, lfhist, 
-	iter, mdls, bdls) {
+	iter, mdls, bdls, fix = NULL) {
 	# print(type)
-	if(type == "lamstar") {
+	if(type == "lamstar" && !(type %in% fix)) {
 		guessvec <- lamfun(guessvec, lamcon)
 		
-	} else if(type == "lfmat") {
+	} else if(type == "lfmat" && !(type %in% fix)) {
 		
 		out <- ffun(guessvec, lfhist, iter)
 		guessvec <- out[["guessvec"]]
 		lfhist <- out[["lfhist"]]
 		
-	} else if(type == "mu") {
+	} else if(type == "mu" && !(type %in% fix)) {
 		guessvec <- mufun(guessvec)
 		
-	} else if(type == "sigma2") {
+	} else if(type == "sigma2" && !(type %in% fix)) {
 		guessvec <- sig2fun(guessvec)
 		
-	} else if(type == "xi2") {
+	} else if(type == "xi2" && !(type %in% fix)) {
 		guessvec <- xi2fun(guessvec)
 		
-	} else if(type == "ly") {
+	} else if(type == "ly" && !(type %in% fix)) {
 		guessvec <- yfun(guessvec, mdls, bdls)
 		
-	}else{
-		stop("Error: type not recognized")	
+	}else if (!(type %in% fix)){
+		stop("Error: type not recognizeds")	
 	}		
 		
 	out <- list(guessvec, lfhist)
@@ -260,8 +260,12 @@ sig2fun <- function(guessvec)	{
 	mean <- log(fmat %*% lambda)
 	
 	#get priors
-	pra <- 0.01
-	prb <- 0.01
+	# pra <- 0.01
+	# prb <- 0.01
+	# Revise prior for invgamma
+	pra <- 2
+	prb <- 1
+	
 	
 	#get posterior parameters
 	a2 <- pra + T1 / 2
@@ -293,8 +297,12 @@ xi2fun <- function(guessvec)	{
 	T1 <- nrow(lfmat)
 	
 	#set prior values
-	pra <- 0.01
-	prb <- 0.01
+	# pra <- 0.01
+	# prb <- 0.01
+	# Revise prior for invgamma
+	pra <- 2
+	prb <- 1
+	
 	
 	#get posterior paramters
 	a2 <- pra + T1 / 2
