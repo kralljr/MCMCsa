@@ -93,8 +93,10 @@ mcmcsa <- function(dat, lamcon, mdls = NULL,
 		lfmatG <- matrix((rnorm(T1 * L)), nrow = T1)
 		# sigma2G <- diag(1, P)
 		sigma2G <- rep(.0001, P)		
-		muG <- rep(0, L)
-		xi2G <- rep(1, L)
+		# muG <- rep(0, L)
+		muG <- c(0.453, 1.916, 1.703, 0.582)
+		#xi2G <- rep(1, L)
+		xi2G <- c(0.035, 0.002, 0.003, 0.012)
 		guessvec <- list(lamstarG, lfmatG, sigma2G, muG, xi2G)
 		names(guessvec) <- names1
 	}
