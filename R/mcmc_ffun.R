@@ -4,7 +4,7 @@
 # guess vec is vector of guesses
 # iter is current iteration
 # lfhist is list of length T where each item is iter X L matrix
-ffun <- function(guessvec, lfhist, iter, bound = 80)	{
+ffun1 <- function(guessvec, lfhist, iter, bound = 80)	{
 	
 	lfmat <- guessvec[["lfmat"]]
 	
@@ -137,7 +137,53 @@ ffun <- function(guessvec, lfhist, iter, bound = 80)	{
 }
 
 
+ffun <- function(guessvec, lfhist, iter, bound = 80)	{
+	
+	lfmat <- guessvec[["lfmat"]]
+	
+	#set dimentions
+	T1 <- nrow(lfmat)
+	L <- length(guessvec[["mu"]])
+	
+	#for each day
+	for(t in 1 : T1) {
+		
+		
+		#get mean
+		mn <- lfmat[t, ]
 
+		newlf <- rnorm(L, mean = mn, sd = 0.1)
+		lhoodNEW <- loglhoodf(newlf, guessvec, t, bound)
+		lhoodOLD <- loglhoodf(mn, guessvec, t, bound)
+		
+		
+		
+		#acceptance
+		lprob <- min(0, lhoodNEW - lhoodOLD)
+		lprob <- ifelse(is.na(lprob), -Inf, lprob)
+		unif1 <- runif(1)
+		
+		#update guess
+		if(log(unif1) <= lprob) {
+			if(min(newlf) < -bound | max(newlf) > bound) {
+				browser()
+			}
+			guessvec[["lfmat"]][t, ] <- newlf
+		}
+				
+	}
+
+	
+	#print(min(guessvec[["lfmat"]]))
+	out <- list(guessvec, lfhist)
+	names(out) <- c("guessvec", "lfhist")
+	out
+}
+	
+	
+	
+	
+	
 
 #lhood for F
 # fmat is current guess for F
