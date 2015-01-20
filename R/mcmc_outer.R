@@ -303,11 +303,11 @@ xi2fun <- function(guessvec)	{
 	# prb <- 0.01
 	# Revise prior for invgamma
 	# pra <- 2
-	# prb <- 1
+	prb <- 1
 	
 	
 	pra <- 2.1
-	prb <- c(0.04, 0.002, 0.003, 0.01)
+	# prb <- c(0.04, 0.002, 0.003, 0.01)
 	
 	
 	#get posterior paramters
@@ -345,10 +345,10 @@ mufun <- function(guessvec)	{
 	T1 <- nrow(lfmat)
 	
 	#set prior values
-	# prmean <- 0
-	prmean <- c(0.45, 1.9, 1.7, 0.58)
-	# prvar <- 100
-	prvar <- .01
+	prmean <- 0
+	# prmean <- c(0.45, 1.9, 1.7, 0.58)
+	prvar <- 10
+	# prvar <- .01
 	
 	#get variance for all sources
 	invars <- 1 / prvar + T1 / xi2
