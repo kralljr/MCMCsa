@@ -39,6 +39,7 @@ lamfun <- function(guessvec, lamcon)	{
 	
 				if(log(unif1) <= lprob) {
 					lamstar <- lamstarNEW
+					guessvec[["lamstar"]] <- lamstar
 				}
 			
 			}
@@ -64,12 +65,20 @@ loglam <- function(lamstar, guessvec, l, p) {
 	#likelihood of data
 	ly <- logly(guessvec, p = p)
 	
-	#set prior values from Nikolov 2011
+	# #set prior values from Nikolov 2011
 	mn <- -0.5
 	sd1 <- sqrt(0.588)
+	lam <- dlnorm(lamstar[l, p], meanlog = mn, sdlog = sd1, log = F)
 	
-	#get truncated normal density
-	lam <- dtruncnorm(lamstar[l, p], a = 0, mean = mn, sd = sd1)
+	
+	# #get truncated normal density
+	# mn <- 0.8
+	# sd1 <- 0.7
+	# lam <- dtruncnorm(lamstar[l, p], a = 0, mean = mn, sd = sd1)
+	
+	
+	
+
 	
 	ly +  log(lam)
 }
