@@ -155,7 +155,7 @@ logly.normal <- function(guessvec, t, p) {
 		
 		ldat <- ldat[t, p]
 		mn <- log(sum(fmat[t, ] * lambda[, p]))
-		llhood <- -(ldat - mean)^2 / (2 * sigma2[p])
+		llhood <- -(ldat - mn)^2 / (2 * sigma2[p])
 	}
 	
 	llhood
