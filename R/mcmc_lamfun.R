@@ -13,7 +13,7 @@ lamfun <- function(guessvec, lamcon)	{
 	P <- ncol(lamstar)
 	
 	#set variance for proposal distribution
-	sd1 <- 1
+	sd1 <- 0.01
 	
 	#propose
 	newlam <- matrix(rnorm(L * P, mean = lamstar, sd = sd1), 
@@ -38,6 +38,7 @@ lamfun <- function(guessvec, lamcon)	{
 				#sel <- rbinom(1, 1, prob)
 	
 				if(log(unif1) <= lprob) {
+					#browser()
 					lamstar <- lamstarNEW
 					guessvec[["lamstar"]] <- lamstar
 				}
