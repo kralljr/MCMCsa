@@ -129,7 +129,9 @@ logly.normal <- function(guessvec, t, p) {
 		#get in exp
 		diffsq <- (sweep(ldat, 2, mn))^2
 		sweeps <- sweep(diffsq, 2, sigma2 * 2, "/")
-		llhood <- -sum(sweeps)
+		llhood <- colSums(-sweeps)
+		llhood <- -1/2 * log(2 * pi * sigma2) + llhood
+		llhood <- sum(llhood)
 		
 	# if want one day
 	}else if(is.null(p)){
@@ -138,7 +140,8 @@ logly.normal <- function(guessvec, t, p) {
 		ldat <- ldat[t, ]
 		#get mean
 		mn <- log(t(fmat[t, ]) %*% lambda)
-		llhood <- -sum((ldat - mn)^2 / (2 * sigma2))
+		llhood <- -((ldat - mn)^2 / (2 * sigma2))
+		llhood <- sum(-1/2 * log(2 * pi * sigma2) + llhood)
 		
 	# if want one constituent
 	}else if(is.null(t)) {
@@ -148,7 +151,8 @@ logly.normal <- function(guessvec, t, p) {
 		
 		#get mean
 		mn <- log(fmat %*% lambda[, p])
-		llhood <- -sum((ldat - mn)^2 / (2 * sigma2[p]))
+		llhood <- sum(-(ldat - mn)^2 / (2 * sigma2[p]))
+		llhood <- -1/2 * log(2 * pi * sigma2[p]) + llhood
 		
 	#one constituent, one day	
 	} else{
@@ -156,6 +160,7 @@ logly.normal <- function(guessvec, t, p) {
 		ldat <- ldat[t, p]
 		mn <- log(sum(fmat[t, ] * lambda[, p]))
 		llhood <- -(ldat - mn)^2 / (2 * sigma2[p])
+		llhood <- -1/2 * log(2 * pi * sigma2[p]) + llhood
 	}
 	
 	llhood
