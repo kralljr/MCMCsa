@@ -345,10 +345,10 @@ mufun <- function(guessvec)	{
 	T1 <- nrow(lfmat)
 	
 	#set prior values
-	#prmean <- 0
-	prmean <- c(0.45, 1.9, 1.7, 0.58)
-	#prvar <- 10
-	prvar <- 1
+	prmean <- 0
+	#prmean <- c(0.45, 1.9, 1.7, 0.58)
+	prvar <- 10
+	#prvar <- 1
 	
 	#get variance for all sources
 	invars <- 1 / prvar + T1 / xi2
