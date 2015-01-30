@@ -303,13 +303,17 @@ xi2fun <- function(guessvec)	{
 	# prb <- 0.01
 	# Revise prior for invgamma
 	# pra <- 2
-	prb <- 1
+	#prb <- 1
 	
 	
-	pra <- 2.1
+	#pra <- 2.1
+	#pra <- 3
 	# prb <- c(0.04, 0.002, 0.003, 0.01)
 	
-	
+	#based on check_priors
+	pra <- 1.3
+	prb <- 1.5
+
 	#get posterior paramters
 	a2 <- pra + T1 / 2
 	diffs2 <- (sweep(lfmat, 2, mu))^2
