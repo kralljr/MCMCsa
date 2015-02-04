@@ -262,11 +262,11 @@ sig2fun <- function(guessvec)	{
 	mean <- log(fmat %*% lambda)
 	
 	#get priors
-	# pra <- 0.01
-	# prb <- 0.01
+	 pra <- 0.01
+	 prb <- 0.0001
 	# Revise prior for invgamma
-	pra <- 2
-	prb <- 1
+	#pra <- 2
+	#prb <- 1
 	
 	
 	#get posterior parameters
