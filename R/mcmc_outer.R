@@ -275,7 +275,7 @@ sig2fun <- function(guessvec)	{
 	b2 <- prb + colSums(diffs2) / 2
 	
 	#sample from inv gamma
-	sigma2 <- rinvgamma(P, a2, b2)
+	sigma2 <- 1/ rgamma(P, a2, scale = b2)
 	# sigma2 <- diag(sigma2)
 
 	#update guess
@@ -320,7 +320,7 @@ xi2fun <- function(guessvec)	{
 	b2 <- prb + colSums(diffs2) / 2
 	
 	#sample for all sources
-	xi2 <- rinvgamma(L, a2, b2)
+	xi2 <- 1 / rgamma(L, a2, scale = b2)
 
 	#update guess
 	guessvec[["xi2"]] <- xi2

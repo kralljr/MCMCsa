@@ -20,7 +20,6 @@
 #' to particulate matter pollution using national databases, 25(7) 513-527.
 #' @name MCMCsa
 #' @docType package
-#' @import MCMCpack
 #' @import truncnorm
 #' @import corpcor
 #' @import mvtnorm
