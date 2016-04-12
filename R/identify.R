@@ -5,6 +5,7 @@
 #' This function checks conditions C1- C3-1 from Park et al. 2002 Environmetrics
 #' 
 #' @param lamcon Matrix of number of sources by number of constituents containing the 0s and 1s for identifiability conditions
+#' @export
 identifySA <- function(lamcon) {
   L <- nrow(lamcon)
   
