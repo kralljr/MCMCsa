@@ -2,10 +2,13 @@
 % Please edit documentation in R/mcmc_outer.R
 \name{mcmcsa}
 \alias{mcmcsa}
+\alias{mcmcsa.default}
 \title{MCMC for source apportionment}
 \usage{
-mcmcsa(dat, lamcon, mdls = NULL, guessvec = NULL, burnin = 10000,
-  N = 1e+05, fix = NULL)
+mcmcsa(x, ...)
+
+\method{mcmcsa}{default}(dat, lamcon, mdls = NULL, guessvec = NULL,
+  burnin = 10000, N = 1e+05, fix = NULL)
 }
 \arguments{
 \item{dat}{data frame of daily constituent concentrations with date as first column}

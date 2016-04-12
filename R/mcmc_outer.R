@@ -28,7 +28,12 @@
 #' L <- 4
 #' 
 #' mcmcsa(nycdat, L, lamcon)
-mcmcsa <- function(dat, lamcon, mdls = NULL, 
+mcmcsa <- function(x, ...) UseMethod("mcmcsa")
+
+
+#' @rdname mcmcsa
+#' @export
+mcmcsa.default <- function(dat, lamcon, mdls = NULL, 
 	guessvec = NULL, burnin = 10000, N = 100000, fix = NULL){
 
 
@@ -186,10 +191,63 @@ mcmcsa <- function(dat, lamcon, mdls = NULL,
 
 
 
+print.mcmcsa <- function(x) {
+  cat("Call:\n")
+  print(x$call)
+  cat("Posterior mean unscaled profiles:\n")
+  print(apply(x$lamstar, c(1, 2), mean))
+}
 
 
+plot.mcmcsa <- function(x, type, names1 = NULL, selects = NULL, ls1 = NULL, ps = NULL, ts1 = NULL) {
+  # Select output
+  out <- x[[type]]
 
+  # Get index
+  P <- ncol(x$lamstar)
+  L <- nrow(x$lamstar)
+  T1 <- nrow(x$lfmat)
+  if(is.null(ls1)) {
+    ls1 <- sample(1 : L, 1)
+  }
+  if(is.null(ps)) {
+    ps <- sample(1 : P, 16, replace = F)
+  }
+  if(is.null(ts1)) {
+    ts1 <- sample(1 : T1, 16, replace = F)
+    
+  }
+  #print(c(ts1, ls1, ps))
+  
+  # Main title
+  mains <- paste(type, seq(1 : P))
+   
+  # Subset for lambda, F 
+  if(type == "lamstar") {
+    out <- out[ls1, ps, ]
+    mains <- paste0(type, ", Source:", ls1, ", Cons:", ps) 
+  } else if(type == "lfmat" ) {
+    out <- out[ts1, ls1, ]
+    mains <- paste0(type, ", Source:", ls1, ", Day:", ts1) 
+  } else if(type == "sigma2") {
+    out <- out[ps, ]
+    mains <- paste0(type, ", Cons:", ps)
+  }
+  
+  # Only plot some
+  if(!is.null(selects)) {
+    out <- out[, selects]
+  }
 
+  print(dim(out))
+  par(mfrow = c(4, 4))
+  for(i in 1 : P) {
+    if(i <= nrow(out)) {
+      plot(out[i, ], main = mains[i], pch = 16)
+  
+    }
+  }
+}
 
 
 
