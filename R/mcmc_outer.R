@@ -94,9 +94,9 @@ mcmcsa <- function(dat, lamcon, mdls = NULL,
 		# sigma2G <- diag(1, P)
 		sigma2G <- rep(.0001, P)		
 		# muG <- rep(0, L)
-		muG <- c(0.453, 1.916, 1.703, 0.582)
+		muG <- rep(c(0.453, 1.916, 1.703, 0.582), length = L)
 		#xi2G <- rep(1, L)
-		xi2G <- c(0.035, 0.002, 0.003, 0.012)
+		xi2G <- rep(c(0.035, 0.002, 0.003, 0.012), length = L)
 		guessvec <- list(lamstarG, lfmatG, sigma2G, muG, xi2G)
 		names(guessvec) <- names1
 	}
